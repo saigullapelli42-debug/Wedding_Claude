@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import type { Tables, TablesUpdate } from "@/lib/database.types";
 import { ImageUpload } from "../shared/ImageUpload";
 import { SectionHeader, SaveBar } from "../shared/Layout";
+import { buildUpiQrUrl } from "@/lib/upi";
 
 type GiftSettings = Tables<"gift_settings">;
 
@@ -99,17 +100,39 @@ export function GiftsSection() {
             onChange={(e) => update("bank_details", e.target.value)}
           />
         </div>
-        <ImageUpload
-          bucket="qr-codes"
-          url={form.qr_image_url}
-          path={form.qr_image_path}
-          aspect="square"
-          label="QR Code"
-          onChange={({ url, path }) => {
-            update("qr_image_url", url);
-            update("qr_image_path", path);
-          }}
-        />
+        <div className="rounded-lg border p-4 space-y-3">
+          <div>
+            <p className="text-sm font-medium">UPI QR Code</p>
+            <p className="text-xs text-muted-foreground">
+              Generated automatically from your UPI ID above — no upload needed. Upload a custom
+              image below only if you want to override it (e.g. your bank's official QR).
+            </p>
+          </div>
+          {form.qr_image_url ? (
+            <p className="text-xs text-muted-foreground">
+              Using your uploaded QR code. Remove it below to switch back to the auto-generated one.
+            </p>
+          ) : form.upi_id.trim() ? (
+            <img
+              src={buildUpiQrUrl(form.upi_id, form.account_name, 160) ?? undefined}
+              alt="Auto-generated UPI QR preview"
+              className="w-40 h-40 rounded-lg border bg-white p-2"
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">Enter a UPI ID above to preview the QR.</p>
+          )}
+          <ImageUpload
+            bucket="qr-codes"
+            url={form.qr_image_url}
+            path={form.qr_image_path}
+            aspect="square"
+            label="Custom QR Code (optional override)"
+            onChange={({ url, path }) => {
+              update("qr_image_url", url);
+              update("qr_image_path", path);
+            }}
+          />
+        </div>
       </div>
       <SaveBar
         onSave={() => {

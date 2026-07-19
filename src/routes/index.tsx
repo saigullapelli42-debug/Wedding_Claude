@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import heroImg from "@/assets/hero.jpg";
 import { supabase } from "@/lib/supabase";
+import { buildUpiQrUrl } from "@/lib/upi";
 import type { Tables } from "@/lib/database.types";
 import {
   useSiteSettings,
@@ -948,6 +949,7 @@ function BlessingsSection({ blessings }: { blessings: Blessing[] }) {
 function GiftSection({ gift }: { gift: GiftSettings }) {
   const [copied, setCopied] = useState(false);
   if (!gift.enabled) return null;
+  const qrSrc = gift.qr_image_url || buildUpiQrUrl(gift.upi_id, gift.account_name, 240);
   return (
     <section id="gift" className="py-24 px-6 bg-brand-blush/20">
       <div className="max-w-2xl mx-auto text-center">
@@ -957,12 +959,8 @@ function GiftSection({ gift }: { gift: GiftSettings }) {
           easy.
         </p>
         <div className="glass rounded-3xl p-8 shadow-luxe">
-          {gift.qr_image_url && (
-            <img
-              src={gift.qr_image_url}
-              alt="UPI QR"
-              className="w-48 h-48 mx-auto rounded-xl bg-white p-3"
-            />
+          {qrSrc && (
+            <img src={qrSrc} alt="UPI QR" className="w-48 h-48 mx-auto rounded-xl bg-white p-3" />
           )}
           <div className="mt-6">
             <p className="text-xs uppercase tracking-widest text-stone-400 mb-1">UPI ID</p>
@@ -1060,7 +1058,15 @@ function Footer({
   );
 }
 
-function LoadingScreen({ done }: { done: boolean }) {
+function LoadingScreen({
+  done,
+  groomName,
+  brideName,
+}: {
+  done: boolean;
+  groomName?: string;
+  brideName?: string;
+}) {
   return (
     <AnimatePresence>
       {!done && (
@@ -1076,7 +1082,8 @@ function LoadingScreen({ done }: { done: boolean }) {
               transition={{ repeat: Infinity, duration: 2 }}
               className="text-5xl font-serif italic gold-text"
             >
-              S &amp; P
+              {groomName?.charAt(0).toUpperCase() || "S"} &amp;{" "}
+              {brideName?.charAt(0).toUpperCase() || "P"}
             </motion.div>
             <p className="mt-4 text-xs tracking-[0.4em] uppercase text-stone-400">A Love Story</p>
           </div>
@@ -1158,7 +1165,13 @@ function WeddingHome() {
   }
 
   if (!ready) {
-    return <LoadingScreen done={false} />;
+    return (
+      <LoadingScreen
+        done={false}
+        groomName={settingsQ.data?.groom_name}
+        brideName={settingsQ.data?.bride_name}
+      />
+    );
   }
 
   const settings = settingsQ.data!;
@@ -1170,7 +1183,11 @@ function WeddingHome() {
 
   return (
     <>
-      <LoadingScreen done={loaded} />
+      <LoadingScreen
+        done={loaded}
+        groomName={settings.groom_name}
+        brideName={settings.bride_name}
+      />
       <FloatingPetals />
       <Confetti show={confetti} />
       {musicEnabled && songs.length > 0 && (
