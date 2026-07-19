@@ -428,6 +428,8 @@ export type Database = {
       site_settings: {
         Row: {
           bride_name: string;
+          favicon_path: string | null;
+          favicon_url: string | null;
           footer_text: string;
           groom_name: string;
           hashtag: string;
@@ -442,6 +444,8 @@ export type Database = {
         };
         Insert: {
           bride_name?: string;
+          favicon_path?: string | null;
+          favicon_url?: string | null;
           footer_text?: string;
           groom_name?: string;
           hashtag?: string;
@@ -456,6 +460,8 @@ export type Database = {
         };
         Update: {
           bride_name?: string;
+          favicon_path?: string | null;
+          favicon_url?: string | null;
           footer_text?: string;
           groom_name?: string;
           hashtag?: string;

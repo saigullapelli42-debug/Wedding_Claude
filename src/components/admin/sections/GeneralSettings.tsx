@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import type { Tables, TablesUpdate } from "@/lib/database.types";
 import { SectionHeader, SaveBar } from "../shared/Layout";
+import { ImageUpload } from "../shared/ImageUpload";
 
 type SiteSettings = Tables<"site_settings">;
 
@@ -145,6 +146,19 @@ export function GeneralSettings() {
             rows={3}
             value={form.footer_text}
             onChange={(e) => update("footer_text", e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ImageUpload
+            bucket="branding"
+            url={form.favicon_url}
+            path={form.favicon_path}
+            aspect="square"
+            label="Browser Tab Icon (Favicon) — square image works best"
+            onChange={({ url, path }) => {
+              update("favicon_url", url);
+              update("favicon_path", path);
+            }}
           />
         </div>
       </div>

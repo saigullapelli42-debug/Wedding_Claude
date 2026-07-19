@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "../components/ui/sonner";
+import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() {
   return (
@@ -109,6 +110,26 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    // Apply a custom favicon set in the admin panel, if any, without needing a server round-trip.
+    (async () => {
+      try {
+        const { data } = await supabase.from("site_settings").select("favicon_url").single();
+        if (!data?.favicon_url) return;
+        let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement("link");
+          link.rel = "icon";
+          document.head.appendChild(link);
+        }
+        link.href = data.favicon_url;
+      } catch {
+        // Non-fatal: keep the default favicon.png if this fails for any reason.
+      }
+    })();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 export type UploadBucket =
-  "hero" | "couple" | "gallery" | "events" | "family" | "venue" | "qr-codes" | "music";
+  "hero" | "couple" | "gallery" | "events" | "family" | "venue" | "qr-codes" | "music" | "branding";
 
 /**
  * Uploads a file to the given bucket under a random, collision-free path.
