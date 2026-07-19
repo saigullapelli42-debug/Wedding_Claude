@@ -1,14 +1,26 @@
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { Tables } from "@/lib/database.types";
 import { ConfirmDelete } from "../shared/ConfirmDelete";
 import { SectionHeader, EmptyState } from "../shared/Layout";
+import { buildRsvpSummaryMessage, buildWhatsappSendUrl, daysUntil } from "@/lib/whatsapp";
 
 type Rsvp = Tables<"rsvps">;
 type Blessing = Tables<"blessings">;
+type SiteSettings = Tables<"site_settings">;
+
+async function fetchSiteSettings(): Promise<SiteSettings> {
+  const { data, error } = await supabase.from("site_settings").select("*").single();
+  if (error) throw error;
+  return data;
+}
 
 async function fetchRsvps(): Promise<Rsvp[]> {
   const { data, error } = await supabase
@@ -37,6 +49,57 @@ export function WebsiteSettingsSection() {
     queryKey: ["admin_blessings"],
     queryFn: fetchBlessings,
   });
+  const { data: settings } = useQuery({ queryKey: ["site_settings"], queryFn: fetchSiteSettings });
+
+  const [managerName, setManagerName] = useState("");
+  const [managerWhatsapp, setManagerWhatsapp] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (settings && !dirty) {
+      setManagerName(settings.event_manager_name);
+      setManagerWhatsapp(settings.event_manager_whatsapp);
+    }
+  }, [settings]);
+
+  const saveManagerMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("site_settings")
+        .update({ event_manager_name: managerName, event_manager_whatsapp: managerWhatsapp })
+        .eq("id", true);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Event manager contact saved");
+      setDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["site_settings"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
+  });
+
+  const daysLeft = settings ? daysUntil(settings.wedding_date) : null;
+  const showReminder = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
+
+  function sendRsvpSummary() {
+    if (!settings || !rsvps) return;
+    if (!settings.event_manager_whatsapp.trim()) {
+      toast.error("Add the event manager's WhatsApp number first");
+      return;
+    }
+    const message = buildRsvpSummaryMessage({
+      groomName: settings.groom_name,
+      brideName: settings.bride_name,
+      weddingDateLabel: settings.wedding_date_label,
+      rsvps,
+    });
+    const url = buildWhatsappSendUrl(settings.event_manager_whatsapp, message);
+    if (!url) {
+      toast.error("That WhatsApp number doesn't look valid");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["admin_rsvps"] });
@@ -80,6 +143,66 @@ export function WebsiteSettingsSection() {
         title="Website Settings"
         description="Guest RSVPs and blessing-wall messages submitted through the public site."
       />
+
+      {showReminder && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-medium">
+            {daysLeft === 0
+              ? "The wedding is today!"
+              : `Only ${daysLeft} day${daysLeft === 1 ? "" : "s"} until the wedding.`}
+          </p>
+          <p className="mt-1">
+            This is a good time to send the latest RSVP list to your event manager — use the button
+            below.
+          </p>
+        </div>
+      )}
+
+      <div className="rounded-xl border p-5 mb-8 max-w-lg space-y-4">
+        <h3 className="font-medium">Event Manager Contact</h3>
+        <div className="space-y-1.5">
+          <Label>Name</Label>
+          <Input
+            value={managerName}
+            onChange={(e) => {
+              setManagerName(e.target.value);
+              setDirty(true);
+            }}
+            placeholder="e.g. Ramesh (Event Coordinator)"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>WhatsApp Number (with country code)</Label>
+          <Input
+            value={managerWhatsapp}
+            onChange={(e) => {
+              setManagerWhatsapp(e.target.value);
+              setDirty(true);
+            }}
+            placeholder="+91 98765 43210"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            disabled={!dirty || saveManagerMutation.isPending}
+            onClick={() => saveManagerMutation.mutate()}
+          >
+            {saveManagerMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save Contact
+          </Button>
+        </div>
+        <div className="border-t pt-4">
+          <Button size="sm" variant="outline" onClick={sendRsvpSummary} disabled={!rsvps}>
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Send RSVP Summary via WhatsApp
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            Opens WhatsApp with the current RSVP count and guest list pre-filled — you just hit
+            send. Works anytime, not only near the wedding date.
+          </p>
+        </div>
+      </div>
 
       <h3 className="font-medium mb-3">RSVP Responses</h3>
       {rsvpsLoading || !rsvps ? (

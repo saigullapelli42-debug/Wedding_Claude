@@ -428,6 +428,8 @@ export type Database = {
       site_settings: {
         Row: {
           bride_name: string;
+          event_manager_name: string;
+          event_manager_whatsapp: string;
           favicon_path: string | null;
           favicon_url: string | null;
           footer_text: string;
@@ -444,6 +446,8 @@ export type Database = {
         };
         Insert: {
           bride_name?: string;
+          event_manager_name?: string;
+          event_manager_whatsapp?: string;
           favicon_path?: string | null;
           favicon_url?: string | null;
           footer_text?: string;
@@ -460,6 +464,8 @@ export type Database = {
         };
         Update: {
           bride_name?: string;
+          event_manager_name?: string;
+          event_manager_whatsapp?: string;
           favicon_path?: string | null;
           favicon_url?: string | null;
           footer_text?: string;
