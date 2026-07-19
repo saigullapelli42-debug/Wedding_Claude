@@ -111,10 +111,14 @@ function Nav({
   playing,
   onToggleMusic,
   onShare,
+  groomName,
+  brideName,
 }: {
   playing: boolean;
   onToggleMusic: () => void;
   onShare: () => void;
+  groomName: string;
+  brideName: string;
 }) {
   const [open, setOpen] = useState(false);
   const links = [
@@ -130,7 +134,8 @@ function Nav({
       <div className="mx-auto max-w-6xl px-4 py-3">
         <div className="glass rounded-full flex items-center justify-between px-4 py-2 shadow-luxe">
           <a href="#top" className="font-serif italic text-lg gold-text">
-            S <span className="opacity-60">&amp;</span> P
+            {groomName.charAt(0).toUpperCase() || "S"} <span className="opacity-60">&amp;</span>{" "}
+            {brideName.charAt(0).toUpperCase() || "P"}
           </a>
           <nav className="hidden md:flex items-center gap-6 text-xs uppercase tracking-[0.2em] text-brand-ink/70">
             {links.map(([label, id]) => (
@@ -1182,7 +1187,13 @@ function WeddingHome() {
         />
       )}
 
-      <Nav playing={playing} onToggleMusic={toggleMusic} onShare={share} />
+      <Nav
+        playing={playing}
+        onToggleMusic={toggleMusic}
+        onShare={share}
+        groomName={settings.groom_name}
+        brideName={settings.bride_name}
+      />
 
       <main className="relative overflow-x-hidden">
         {hero.visible && (
