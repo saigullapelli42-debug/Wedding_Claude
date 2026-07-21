@@ -1,8 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
@@ -14,6 +12,7 @@ export type Database = {
           message: string;
           name: string;
           published: boolean;
+          site_id: string;
           submitted_at: string;
         };
         Insert: {
@@ -21,6 +20,7 @@ export type Database = {
           message: string;
           name: string;
           published?: boolean;
+          site_id: string;
           submitted_at?: string;
         };
         Update: {
@@ -28,9 +28,18 @@ export type Database = {
           message?: string;
           name?: string;
           published?: boolean;
+          site_id?: string;
           submitted_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "blessings_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       couple_members: {
         Row: {
@@ -42,6 +51,7 @@ export type Database = {
           image_url: string | null;
           name: string;
           side: string;
+          site_id: string;
           social_links: Json;
           updated_at: string;
         };
@@ -54,6 +64,7 @@ export type Database = {
           image_url?: string | null;
           name?: string;
           side: string;
+          site_id: string;
           social_links?: Json;
           updated_at?: string;
         };
@@ -66,10 +77,19 @@ export type Database = {
           image_url?: string | null;
           name?: string;
           side?: string;
+          site_id?: string;
           social_links?: Json;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "couple_members_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       events: {
         Row: {
@@ -87,6 +107,7 @@ export type Database = {
           map_url: string | null;
           name: string;
           published: boolean;
+          site_id: string;
           start_time: string;
           updated_at: string;
           venue: string;
@@ -106,6 +127,7 @@ export type Database = {
           map_url?: string | null;
           name?: string;
           published?: boolean;
+          site_id: string;
           start_time?: string;
           updated_at?: string;
           venue?: string;
@@ -125,29 +147,49 @@ export type Database = {
           map_url?: string | null;
           name?: string;
           published?: boolean;
+          site_id?: string;
           start_time?: string;
           updated_at?: string;
           venue?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "events_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       family_groups: {
         Row: {
           id: string;
           side: string;
+          site_id: string;
           title: string;
         };
         Insert: {
           id?: string;
           side: string;
+          site_id: string;
           title?: string;
         };
         Update: {
           id?: string;
           side?: string;
+          site_id?: string;
           title?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "family_groups_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       family_members: {
         Row: {
@@ -160,6 +202,7 @@ export type Database = {
           image_url: string | null;
           name: string;
           relationship: string;
+          site_id: string;
           updated_at: string;
         };
         Insert: {
@@ -172,6 +215,7 @@ export type Database = {
           image_url?: string | null;
           name?: string;
           relationship?: string;
+          site_id: string;
           updated_at?: string;
         };
         Update: {
@@ -184,6 +228,7 @@ export type Database = {
           image_url?: string | null;
           name?: string;
           relationship?: string;
+          site_id?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -194,6 +239,13 @@ export type Database = {
             referencedRelation: "family_groups";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "family_members_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
         ];
       };
       gallery_categories: {
@@ -202,20 +254,31 @@ export type Database = {
           display_order: number;
           id: string;
           name: string;
+          site_id: string;
         };
         Insert: {
           created_at?: string;
           display_order?: number;
           id?: string;
           name: string;
+          site_id: string;
         };
         Update: {
           created_at?: string;
           display_order?: number;
           id?: string;
           name?: string;
+          site_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "gallery_categories_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       gallery_images: {
         Row: {
@@ -227,6 +290,7 @@ export type Database = {
           image_path: string | null;
           image_url: string;
           published: boolean;
+          site_id: string;
           title: string;
           updated_at: string;
         };
@@ -239,6 +303,7 @@ export type Database = {
           image_path?: string | null;
           image_url: string;
           published?: boolean;
+          site_id: string;
           title?: string;
           updated_at?: string;
         };
@@ -251,6 +316,7 @@ export type Database = {
           image_path?: string | null;
           image_url?: string;
           published?: boolean;
+          site_id?: string;
           title?: string;
           updated_at?: string;
         };
@@ -262,6 +328,13 @@ export type Database = {
             referencedRelation: "gallery_categories";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "gallery_images_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
         ];
       };
       gift_settings: {
@@ -270,9 +343,10 @@ export type Database = {
           bank_details: string;
           bank_name: string;
           enabled: boolean;
-          id: boolean;
+          id: string;
           qr_image_path: string | null;
           qr_image_url: string | null;
+          site_id: string;
           updated_at: string;
           upi_id: string;
         };
@@ -281,9 +355,10 @@ export type Database = {
           bank_details?: string;
           bank_name?: string;
           enabled?: boolean;
-          id?: boolean;
+          id?: string;
           qr_image_path?: string | null;
           qr_image_url?: string | null;
+          site_id: string;
           updated_at?: string;
           upi_id?: string;
         };
@@ -292,64 +367,87 @@ export type Database = {
           bank_details?: string;
           bank_name?: string;
           enabled?: boolean;
-          id?: boolean;
+          id?: string;
           qr_image_path?: string | null;
           qr_image_url?: string | null;
+          site_id?: string;
           updated_at?: string;
           upi_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "gift_settings_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       hero: {
         Row: {
-          id: boolean;
+          id: string;
           image_path: string | null;
           image_url: string | null;
+          site_id: string;
           subtitle: string;
           title: string;
           updated_at: string;
           visible: boolean;
         };
         Insert: {
-          id?: boolean;
+          id?: string;
           image_path?: string | null;
           image_url?: string | null;
+          site_id: string;
           subtitle?: string;
           title?: string;
           updated_at?: string;
           visible?: boolean;
         };
         Update: {
-          id?: boolean;
+          id?: string;
           image_path?: string | null;
           image_url?: string | null;
+          site_id?: string;
           subtitle?: string;
           title?: string;
           updated_at?: string;
           visible?: boolean;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "hero_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       music_settings: {
         Row: {
           autoplay: boolean;
           default_track_id: string | null;
           enabled: boolean;
-          id: boolean;
+          id: string;
+          site_id: string;
           updated_at: string;
         };
         Insert: {
           autoplay?: boolean;
           default_track_id?: string | null;
           enabled?: boolean;
-          id?: boolean;
+          id?: string;
+          site_id: string;
           updated_at?: string;
         };
         Update: {
           autoplay?: boolean;
           default_track_id?: string | null;
           enabled?: boolean;
-          id?: boolean;
+          id?: string;
+          site_id?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -358,6 +456,13 @@ export type Database = {
             columns: ["default_track_id"];
             isOneToOne: false;
             referencedRelation: "music_tracks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "music_settings_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
             referencedColumns: ["id"];
           },
         ];
@@ -370,6 +475,7 @@ export type Database = {
           file_path: string | null;
           file_url: string;
           id: string;
+          site_id: string;
           title: string;
           updated_at: string;
         };
@@ -380,6 +486,7 @@ export type Database = {
           file_path?: string | null;
           file_url: string;
           id?: string;
+          site_id: string;
           title?: string;
           updated_at?: string;
         };
@@ -390,10 +497,19 @@ export type Database = {
           file_path?: string | null;
           file_url?: string;
           id?: string;
+          site_id?: string;
           title?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "music_tracks_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       rsvps: {
         Row: {
@@ -403,6 +519,7 @@ export type Database = {
           message: string | null;
           name: string;
           phone: string | null;
+          site_id: string;
           submitted_at: string;
         };
         Insert: {
@@ -412,6 +529,7 @@ export type Database = {
           message?: string | null;
           name: string;
           phone?: string | null;
+          site_id: string;
           submitted_at?: string;
         };
         Update: {
@@ -421,9 +539,18 @@ export type Database = {
           message?: string | null;
           name?: string;
           phone?: string | null;
+          site_id?: string;
           submitted_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "rsvps_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       site_settings: {
         Row: {
@@ -435,8 +562,9 @@ export type Database = {
           footer_text: string;
           groom_name: string;
           hashtag: string;
-          id: boolean;
+          id: string;
           rsvp_deadline: string;
+          site_id: string;
           tagline: string;
           updated_at: string;
           wedding_date: string | null;
@@ -453,8 +581,9 @@ export type Database = {
           footer_text?: string;
           groom_name?: string;
           hashtag?: string;
-          id?: boolean;
+          id?: string;
           rsvp_deadline?: string;
+          site_id: string;
           tagline?: string;
           updated_at?: string;
           wedding_date?: string | null;
@@ -471,14 +600,50 @@ export type Database = {
           footer_text?: string;
           groom_name?: string;
           hashtag?: string;
-          id?: boolean;
+          id?: string;
           rsvp_deadline?: string;
+          site_id?: string;
           tagline?: string;
           updated_at?: string;
           wedding_date?: string | null;
           wedding_date_label?: string;
           wedding_title?: string;
           welcome_message?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sites: {
+        Row: {
+          bride_name: string;
+          created_at: string;
+          groom_name: string;
+          id: string;
+          owner_user_id: string | null;
+          slug: string;
+        };
+        Insert: {
+          bride_name?: string;
+          created_at?: string;
+          groom_name?: string;
+          id?: string;
+          owner_user_id?: string | null;
+          slug: string;
+        };
+        Update: {
+          bride_name?: string;
+          created_at?: string;
+          groom_name?: string;
+          id?: string;
+          owner_user_id?: string | null;
+          slug?: string;
         };
         Relationships: [];
       };
@@ -489,6 +654,7 @@ export type Database = {
           enabled: boolean;
           id: string;
           platform: string;
+          site_id: string;
           updated_at: string;
           url: string;
         };
@@ -498,6 +664,7 @@ export type Database = {
           enabled?: boolean;
           id?: string;
           platform?: string;
+          site_id: string;
           updated_at?: string;
           url?: string;
         };
@@ -507,10 +674,19 @@ export type Database = {
           enabled?: boolean;
           id?: string;
           platform?: string;
+          site_id?: string;
           updated_at?: string;
           url?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "social_links_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       timeline_items: {
         Row: {
@@ -523,6 +699,7 @@ export type Database = {
           image_path: string | null;
           image_url: string | null;
           published: boolean;
+          site_id: string;
           title: string;
           updated_at: string;
         };
@@ -536,6 +713,7 @@ export type Database = {
           image_path?: string | null;
           image_url?: string | null;
           published?: boolean;
+          site_id: string;
           title?: string;
           updated_at?: string;
         };
@@ -549,78 +727,113 @@ export type Database = {
           image_path?: string | null;
           image_url?: string | null;
           published?: boolean;
+          site_id?: string;
           title?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "timeline_items_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_roles: {
         Row: {
           created_at: string;
           id: string;
           role: string;
+          site_id: string;
           user_id: string;
         };
         Insert: {
           created_at?: string;
           id?: string;
           role: string;
+          site_id: string;
           user_id: string;
         };
         Update: {
           created_at?: string;
           id?: string;
           role?: string;
+          site_id?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       venue: {
         Row: {
           address: string;
           description: string;
           directions_url: string | null;
-          id: boolean;
+          id: string;
           image_path: string | null;
           image_url: string | null;
           map_embed_url: string | null;
           map_url: string | null;
           name: string;
+          site_id: string;
           updated_at: string;
         };
         Insert: {
           address?: string;
           description?: string;
           directions_url?: string | null;
-          id?: boolean;
+          id?: string;
           image_path?: string | null;
           image_url?: string | null;
           map_embed_url?: string | null;
           map_url?: string | null;
           name?: string;
+          site_id: string;
           updated_at?: string;
         };
         Update: {
           address?: string;
           description?: string;
           directions_url?: string | null;
-          id?: boolean;
+          id?: string;
           image_path?: string | null;
           image_url?: string | null;
           map_embed_url?: string | null;
           map_url?: string | null;
           name?: string;
+          site_id?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "venue_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: true;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      bootstrap_first_admin: { Args: never; Returns: boolean };
+      bootstrap_first_site_admin: {
+        Args: { target_site_id: string };
+        Returns: boolean;
+      };
       is_admin: { Args: never; Returns: boolean };
+      is_site_admin: { Args: { check_site_id: string }; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;

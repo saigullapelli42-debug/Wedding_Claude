@@ -22,25 +22,32 @@ import { ReorderButtons, SectionHeader, EmptyState } from "../shared/Layout";
 type GalleryCategory = Tables<"gallery_categories">;
 type GalleryImage = Tables<"gallery_images">;
 
-async function fetchCategories(): Promise<GalleryCategory[]> {
+async function fetchCategories(siteId: string): Promise<GalleryCategory[]> {
   const { data, error } = await supabase
     .from("gallery_categories")
     .select("*")
+    .eq("site_id", siteId)
     .order("display_order");
   if (error) throw error;
   return data;
 }
-async function fetchImages(): Promise<GalleryImage[]> {
-  const { data, error } = await supabase.from("gallery_images").select("*").order("display_order");
+async function fetchImages(siteId: string): Promise<GalleryImage[]> {
+  const { data, error } = await supabase
+    .from("gallery_images")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
 
 function CategoryManager({
   categories,
+  siteId,
   onChanged,
 }: {
   categories: GalleryCategory[];
+  siteId: string;
   onChanged: () => void;
 }) {
   const [newName, setNewName] = useState("");
@@ -50,7 +57,7 @@ function CategoryManager({
     mutationFn: async (name: string) => {
       const { error } = await supabase
         .from("gallery_categories")
-        .insert({ name, display_order: categories.length });
+        .insert({ site_id: siteId, name, display_order: categories.length });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -133,6 +140,7 @@ function CategoryManager({
 function ImageCard({
   image,
   categories,
+  siteId,
   isFirst,
   isLast,
   onMove,
@@ -140,6 +148,7 @@ function ImageCard({
 }: {
   image: GalleryImage;
   categories: GalleryCategory[];
+  siteId: string;
   isFirst: boolean;
   isLast: boolean;
   onMove: (dir: "up" | "down") => void;
@@ -266,24 +275,24 @@ function ImageCard({
   );
 }
 
-export function GallerySection() {
+export function GallerySection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { data: categories, isLoading: catLoading } = useQuery({
-    queryKey: ["gallery_categories"],
-    queryFn: fetchCategories,
+    queryKey: ["gallery_categories", siteId],
+    queryFn: () => fetchCategories(siteId),
   });
   const { data: images, isLoading: imgLoading } = useQuery({
-    queryKey: ["gallery_images"],
-    queryFn: fetchImages,
+    queryKey: ["gallery_images", siteId],
+    queryFn: () => fetchImages(siteId),
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["gallery_categories"] });
-    queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "gallery_images"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "gallery_categories"] });
+    queryClient.invalidateQueries({ queryKey: ["gallery_categories", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["gallery_images", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "gallery_images", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "gallery_categories", siteId] });
   }
 
   async function handleUpload(files: FileList) {
@@ -292,8 +301,9 @@ export function GallerySection() {
       const startOrder = images?.length ?? 0;
       let i = 0;
       for (const file of Array.from(files)) {
-        const { url, path } = await uploadToBucket("gallery", file);
+        const { url, path } = await uploadToBucket("gallery", file, siteId);
         const { error } = await supabase.from("gallery_images").insert({
+          site_id: siteId,
           image_url: url,
           image_path: path,
           title: file.name.replace(/\.[^.]+$/, ""),
@@ -346,7 +356,7 @@ export function GallerySection() {
         title="Gallery"
         description="Photos shown in the site gallery, grouped by category."
       />
-      <CategoryManager categories={categories} onChanged={refresh} />
+      <CategoryManager categories={categories} siteId={siteId} onChanged={refresh} />
 
       <div className="mb-4">
         <input
@@ -379,6 +389,7 @@ export function GallerySection() {
               key={img.id}
               image={img}
               categories={categories}
+              siteId={siteId}
               isFirst={i === 0}
               isLast={i === images.length - 1}
               onMove={(dir) => move(img, dir)}

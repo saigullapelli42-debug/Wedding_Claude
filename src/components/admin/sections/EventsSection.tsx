@@ -16,13 +16,17 @@ import { deleteFromBucket } from "@/lib/storage";
 
 type EventRow = Tables<"events">;
 
-async function fetchEvents(): Promise<EventRow[]> {
-  const { data, error } = await supabase.from("events").select("*").order("display_order");
+async function fetchEvents(siteId: string): Promise<EventRow[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
 
-const BLANK: TablesInsert<"events"> = {
+const BLANK: Omit<TablesInsert<"events">, "site_id"> = {
   name: "New Event",
   event_date: "",
   start_time: "",
@@ -39,12 +43,14 @@ const BLANK: TablesInsert<"events"> = {
 
 function EventCard({
   event,
+  siteId,
   isFirst,
   isLast,
   onMove,
   onChanged,
 }: {
   event: EventRow;
+  siteId: string;
   isFirst: boolean;
   isLast: boolean;
   onMove: (dir: "up" | "down") => void;
@@ -161,6 +167,7 @@ function EventCard({
       </div>
       <ImageUpload
         bucket="events"
+        siteId={siteId}
         url={form.image_url}
         path={form.image_path}
         label="Event Image"
@@ -194,20 +201,23 @@ function EventCard({
   );
 }
 
-export function EventsSection() {
+export function EventsSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data, isLoading } = useQuery({
+    queryKey: ["events", siteId],
+    queryFn: () => fetchEvents(siteId),
+  });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["events"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "events"] });
+    queryClient.invalidateQueries({ queryKey: ["events", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "events", siteId] });
   }
 
   const addMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("events")
-        .insert({ ...BLANK, display_order: data?.length ?? 0 });
+        .insert({ ...BLANK, site_id: siteId, display_order: data?.length ?? 0 });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -257,6 +267,7 @@ export function EventsSection() {
             <EventCard
               key={event.id}
               event={event}
+              siteId={siteId}
               isFirst={i === 0}
               isLast={i === data.length - 1}
               onMove={(dir) => move(event, dir)}

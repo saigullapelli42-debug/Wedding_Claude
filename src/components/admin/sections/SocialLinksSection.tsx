@@ -12,8 +12,12 @@ import { SectionHeader, EmptyState } from "../shared/Layout";
 
 type SocialLink = Tables<"social_links">;
 
-async function fetchLinks(): Promise<SocialLink[]> {
-  const { data, error } = await supabase.from("social_links").select("*").order("display_order");
+async function fetchLinks(siteId: string): Promise<SocialLink[]> {
+  const { data, error } = await supabase
+    .from("social_links")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
@@ -91,20 +95,26 @@ function LinkRow({ link, onChanged }: { link: SocialLink; onChanged: () => void 
   );
 }
 
-export function SocialLinksSection() {
+export function SocialLinksSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["social_links"], queryFn: fetchLinks });
+  const { data, isLoading } = useQuery({
+    queryKey: ["social_links", siteId],
+    queryFn: () => fetchLinks(siteId),
+  });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["social_links"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "social_links"] });
+    queryClient.invalidateQueries({ queryKey: ["social_links", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "social_links", siteId] });
   }
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("social_links")
-        .insert({ platform: "New Link", url: "https://", display_order: data?.length ?? 0 });
+      const { error } = await supabase.from("social_links").insert({
+        site_id: siteId,
+        platform: "New Link",
+        url: "https://",
+        display_order: data?.length ?? 0,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

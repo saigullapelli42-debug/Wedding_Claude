@@ -4,16 +4,18 @@ export type UploadBucket =
   "hero" | "couple" | "gallery" | "events" | "family" | "venue" | "qr-codes" | "music" | "branding";
 
 /**
- * Uploads a file to the given bucket under a random, collision-free path.
- * Returns both the public URL (for immediate rendering) and the storage path
- * (needed later to delete/replace the object).
+ * Uploads a file to the given bucket under a random, collision-free path,
+ * namespaced by site so multiple couples' files never collide in a shared
+ * bucket. Returns both the public URL (for immediate rendering) and the
+ * storage path (needed later to delete/replace the object).
  */
 export async function uploadToBucket(
   bucket: UploadBucket,
   file: File,
+  siteId: string,
 ): Promise<{ url: string; path: string }> {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const path = `${crypto.randomUUID()}.${ext}`;
+  const path = `${siteId}/${crypto.randomUUID()}.${ext}`;
 
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",
@@ -39,9 +41,10 @@ export async function deleteFromBucket(bucket: UploadBucket, path?: string | nul
 export async function replaceInBucket(
   bucket: UploadBucket,
   file: File,
+  siteId: string,
   previousPath?: string | null,
 ): Promise<{ url: string; path: string }> {
-  const result = await uploadToBucket(bucket, file);
+  const result = await uploadToBucket(bucket, file, siteId);
   if (previousPath) {
     await deleteFromBucket(bucket, previousPath).catch(() => {
       // Non-fatal: orphaned file, but the new upload already succeeded.

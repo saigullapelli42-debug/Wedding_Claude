@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "../components/ui/sonner";
-import { supabase } from "../lib/supabase";
 
 function NotFoundComponent() {
   return (
@@ -66,14 +65,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sai & Priya · Our Wedding · 15 December 2026" },
+      { title: "Wedding Websites" },
       {
         name: "description",
-        content:
-          "Together with our families, we invite you to celebrate the wedding of Sai and Priya on 15 December 2026.",
+        content: "Beautiful, dynamic wedding websites for couples to share with their guests.",
       },
-      { property: "og:title", content: "Sai & Priya · Our Wedding" },
-      { property: "og:description", content: "Join us as we say 'I do' on 15 December 2026." },
+      { property: "og:title", content: "Wedding Websites" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -110,25 +107,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
-  useEffect(() => {
-    // Apply a custom favicon set in the admin panel, if any, without needing a server round-trip.
-    (async () => {
-      try {
-        const { data } = await supabase.from("site_settings").select("favicon_url").single();
-        if (!data?.favicon_url) return;
-        let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-        if (!link) {
-          link = document.createElement("link");
-          link.rel = "icon";
-          document.head.appendChild(link);
-        }
-        link.href = data.favicon_url;
-      } catch {
-        // Non-fatal: keep the default favicon.png if this fails for any reason.
-      }
-    })();
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -14,13 +14,25 @@ import { SectionHeader, SaveBar } from "../shared/Layout";
 type CoupleMember = Tables<"couple_members">;
 type SocialLink = { platform: string; url: string };
 
-async function fetchCouple(): Promise<CoupleMember[]> {
-  const { data, error } = await supabase.from("couple_members").select("*").order("display_order");
+async function fetchCouple(siteId: string): Promise<CoupleMember[]> {
+  const { data, error } = await supabase
+    .from("couple_members")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
 
-function CoupleMemberCard({ member, onSaved }: { member: CoupleMember; onSaved: () => void }) {
+function CoupleMemberCard({
+  member,
+  siteId,
+  onSaved,
+}: {
+  member: CoupleMember;
+  siteId: string;
+  onSaved: () => void;
+}) {
   const [form, setForm] = useState(member);
   const [dirty, setDirty] = useState(false);
   const links = (Array.isArray(form.social_links)
@@ -59,6 +71,7 @@ function CoupleMemberCard({ member, onSaved }: { member: CoupleMember; onSaved: 
       <h3 className="font-serif text-lg capitalize">{form.side}</h3>
       <ImageUpload
         bucket="couple"
+        siteId={siteId}
         url={form.image_url}
         path={form.image_path}
         aspect="square"
@@ -144,13 +157,16 @@ function CoupleMemberCard({ member, onSaved }: { member: CoupleMember; onSaved: 
   );
 }
 
-export function CoupleDetails() {
+export function CoupleDetails({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["couple_members"], queryFn: fetchCouple });
+  const { data, isLoading } = useQuery({
+    queryKey: ["couple_members", siteId],
+    queryFn: () => fetchCouple(siteId),
+  });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["couple_members"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "couple_members"] });
+    queryClient.invalidateQueries({ queryKey: ["couple_members", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "couple_members", siteId] });
   }
 
   if (isLoading || !data) {
@@ -169,7 +185,7 @@ export function CoupleDetails() {
       />
       <div className="grid gap-6 sm:grid-cols-2">
         {data.map((member) => (
-          <CoupleMemberCard key={member.id} member={member} onSaved={refresh} />
+          <CoupleMemberCard key={member.id} member={member} siteId={siteId} onSaved={refresh} />
         ))}
       </div>
     </div>

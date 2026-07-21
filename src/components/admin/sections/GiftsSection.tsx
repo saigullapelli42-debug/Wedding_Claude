@@ -14,15 +14,22 @@ import { buildUpiQrUrl } from "@/lib/upi";
 
 type GiftSettings = Tables<"gift_settings">;
 
-async function fetchGift(): Promise<GiftSettings> {
-  const { data, error } = await supabase.from("gift_settings").select("*").single();
+async function fetchGift(siteId: string): Promise<GiftSettings> {
+  const { data, error } = await supabase
+    .from("gift_settings")
+    .select("*")
+    .eq("site_id", siteId)
+    .single();
   if (error) throw error;
   return data;
 }
 
-export function GiftsSection() {
+export function GiftsSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["gift_settings"], queryFn: fetchGift });
+  const { data, isLoading } = useQuery({
+    queryKey: ["gift_settings", siteId],
+    queryFn: () => fetchGift(siteId),
+  });
   const [form, setForm] = useState<GiftSettings | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -32,14 +39,14 @@ export function GiftsSection() {
 
   const mutation = useMutation({
     mutationFn: async (update: TablesUpdate<"gift_settings">) => {
-      const { error } = await supabase.from("gift_settings").update(update).eq("id", true);
+      const { error } = await supabase.from("gift_settings").update(update).eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Gift settings saved");
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["gift_settings"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "gift_settings"] });
+      queryClient.invalidateQueries({ queryKey: ["gift_settings", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["public", "gift_settings", siteId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -123,6 +130,7 @@ export function GiftsSection() {
           )}
           <ImageUpload
             bucket="qr-codes"
+            siteId={siteId}
             url={form.qr_image_url}
             path={form.qr_image_path}
             aspect="square"

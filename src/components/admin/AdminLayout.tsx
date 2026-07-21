@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Settings,
@@ -14,6 +15,7 @@ import {
   Share2,
   Globe,
   LogOut,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,8 +79,14 @@ export function AdminLayout({
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="px-3 py-3">
+        <SidebarHeader className="px-3 py-3 space-y-2">
           <p className="font-serif text-lg gold-text px-1">Wedding Admin</p>
+          <Link
+            to="/admin"
+            className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-3 w-3" /> My Wedding Sites
+          </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>

@@ -12,17 +12,21 @@ import { ImageUpload } from "../shared/ImageUpload";
 
 type SiteSettings = Tables<"site_settings">;
 
-async function fetchSettings(): Promise<SiteSettings> {
-  const { data, error } = await supabase.from("site_settings").select("*").single();
+async function fetchSettings(siteId: string): Promise<SiteSettings> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("site_id", siteId)
+    .single();
   if (error) throw error;
   return data;
 }
 
-export function GeneralSettings() {
+export function GeneralSettings({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["site_settings"],
-    queryFn: fetchSettings,
+    queryKey: ["site_settings", siteId],
+    queryFn: () => fetchSettings(siteId),
   });
   const [form, setForm] = useState<SiteSettings | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -34,13 +38,13 @@ export function GeneralSettings() {
 
   const mutation = useMutation({
     mutationFn: async (update: TablesUpdate<"site_settings">) => {
-      const { error } = await supabase.from("site_settings").update(update).eq("id", true);
+      const { error } = await supabase.from("site_settings").update(update).eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("General settings saved");
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["site_settings"] });
+      queryClient.invalidateQueries({ queryKey: ["site_settings", siteId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -151,6 +155,7 @@ export function GeneralSettings() {
         <div className="sm:col-span-2">
           <ImageUpload
             bucket="branding"
+            siteId={siteId}
             url={form.favicon_url}
             path={form.favicon_path}
             aspect="square"

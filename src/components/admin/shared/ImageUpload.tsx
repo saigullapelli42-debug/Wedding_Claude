@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
   bucket: UploadBucket;
+  siteId: string;
   url: string | null | undefined;
   path: string | null | undefined;
   onChange: (next: { url: string | null; path: string | null }) => void;
@@ -17,6 +18,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({
   bucket,
+  siteId,
   url,
   path,
   onChange,
@@ -39,7 +41,7 @@ export function ImageUpload({
     setPreview(localPreview);
     setBusy(true);
     try {
-      const result = await replaceInBucket(bucket, file, path);
+      const result = await replaceInBucket(bucket, file, siteId, path);
       onChange({ url: result.url, path: result.path });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");

@@ -16,40 +16,49 @@ type Rsvp = Tables<"rsvps">;
 type Blessing = Tables<"blessings">;
 type SiteSettings = Tables<"site_settings">;
 
-async function fetchSiteSettings(): Promise<SiteSettings> {
-  const { data, error } = await supabase.from("site_settings").select("*").single();
+async function fetchSiteSettings(siteId: string): Promise<SiteSettings> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("site_id", siteId)
+    .single();
   if (error) throw error;
   return data;
 }
 
-async function fetchRsvps(): Promise<Rsvp[]> {
+async function fetchRsvps(siteId: string): Promise<Rsvp[]> {
   const { data, error } = await supabase
     .from("rsvps")
     .select("*")
+    .eq("site_id", siteId)
     .order("submitted_at", { ascending: false });
   if (error) throw error;
   return data;
 }
-async function fetchBlessings(): Promise<Blessing[]> {
+async function fetchBlessings(siteId: string): Promise<Blessing[]> {
   const { data, error } = await supabase
     .from("blessings")
     .select("*")
+    .eq("site_id", siteId)
     .order("submitted_at", { ascending: false });
   if (error) throw error;
   return data;
 }
 
-export function WebsiteSettingsSection() {
+export function WebsiteSettingsSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { data: rsvps, isLoading: rsvpsLoading } = useQuery({
-    queryKey: ["admin_rsvps"],
-    queryFn: fetchRsvps,
+    queryKey: ["admin_rsvps", siteId],
+    queryFn: () => fetchRsvps(siteId),
   });
   const { data: blessings, isLoading: blessingsLoading } = useQuery({
-    queryKey: ["admin_blessings"],
-    queryFn: fetchBlessings,
+    queryKey: ["admin_blessings", siteId],
+    queryFn: () => fetchBlessings(siteId),
   });
-  const { data: settings } = useQuery({ queryKey: ["site_settings"], queryFn: fetchSiteSettings });
+  const { data: settings } = useQuery({
+    queryKey: ["site_settings", siteId],
+    queryFn: () => fetchSiteSettings(siteId),
+  });
 
   const [managerName, setManagerName] = useState("");
   const [managerWhatsapp, setManagerWhatsapp] = useState("");
@@ -67,13 +76,13 @@ export function WebsiteSettingsSection() {
       const { error } = await supabase
         .from("site_settings")
         .update({ event_manager_name: managerName, event_manager_whatsapp: managerWhatsapp })
-        .eq("id", true);
+        .eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Event manager contact saved");
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["site_settings"] });
+      queryClient.invalidateQueries({ queryKey: ["site_settings", siteId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -102,9 +111,9 @@ export function WebsiteSettingsSection() {
   }
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["admin_rsvps"] });
-    queryClient.invalidateQueries({ queryKey: ["admin_blessings"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "blessings"] });
+    queryClient.invalidateQueries({ queryKey: ["admin_rsvps", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["admin_blessings", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "blessings", siteId] });
   }
 
   const deleteRsvp = useMutation({

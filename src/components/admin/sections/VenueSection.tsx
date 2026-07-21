@@ -12,15 +12,18 @@ import { SectionHeader, SaveBar } from "../shared/Layout";
 
 type Venue = Tables<"venue">;
 
-async function fetchVenue(): Promise<Venue> {
-  const { data, error } = await supabase.from("venue").select("*").single();
+async function fetchVenue(siteId: string): Promise<Venue> {
+  const { data, error } = await supabase.from("venue").select("*").eq("site_id", siteId).single();
   if (error) throw error;
   return data;
 }
 
-export function VenueSection() {
+export function VenueSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["venue"], queryFn: fetchVenue });
+  const { data, isLoading } = useQuery({
+    queryKey: ["venue", siteId],
+    queryFn: () => fetchVenue(siteId),
+  });
   const [form, setForm] = useState<Venue | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -30,14 +33,14 @@ export function VenueSection() {
 
   const mutation = useMutation({
     mutationFn: async (update: TablesUpdate<"venue">) => {
-      const { error } = await supabase.from("venue").update(update).eq("id", true);
+      const { error } = await supabase.from("venue").update(update).eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Venue saved");
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["venue"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "venue"] });
+      queryClient.invalidateQueries({ queryKey: ["venue", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["public", "venue", siteId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -99,6 +102,7 @@ export function VenueSection() {
         </div>
         <ImageUpload
           bucket="venue"
+          siteId={siteId}
           url={form.image_url}
           path={form.image_path}
           label="Venue Image"

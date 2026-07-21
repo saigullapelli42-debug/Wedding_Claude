@@ -12,15 +12,18 @@ import { SectionHeader, SaveBar } from "../shared/Layout";
 
 type Hero = Tables<"hero">;
 
-async function fetchHero(): Promise<Hero> {
-  const { data, error } = await supabase.from("hero").select("*").single();
+async function fetchHero(siteId: string): Promise<Hero> {
+  const { data, error } = await supabase.from("hero").select("*").eq("site_id", siteId).single();
   if (error) throw error;
   return data;
 }
 
-export function HeroSection() {
+export function HeroSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["hero"], queryFn: fetchHero });
+  const { data, isLoading } = useQuery({
+    queryKey: ["hero", siteId],
+    queryFn: () => fetchHero(siteId),
+  });
   const [form, setForm] = useState<Hero | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -30,14 +33,14 @@ export function HeroSection() {
 
   const mutation = useMutation({
     mutationFn: async (update: TablesUpdate<"hero">) => {
-      const { error } = await supabase.from("hero").update(update).eq("id", true);
+      const { error } = await supabase.from("hero").update(update).eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Hero section saved");
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["hero"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "hero"] });
+      queryClient.invalidateQueries({ queryKey: ["hero", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["public", "hero", siteId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -90,6 +93,7 @@ export function HeroSection() {
         </div>
         <ImageUpload
           bucket="hero"
+          siteId={siteId}
           url={form.image_url}
           path={form.image_path}
           label="Hero Image (leave empty to use the site's default photo)"

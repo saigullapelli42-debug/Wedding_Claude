@@ -3,14 +3,23 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "../shared/Layout";
 
-async function fetchCounts() {
+async function fetchCounts(siteId: string) {
   const [gallery, events, timeline, family, rsvps, blessings] = await Promise.all([
-    supabase.from("gallery_images").select("id", { count: "exact", head: true }),
-    supabase.from("events").select("id", { count: "exact", head: true }),
-    supabase.from("timeline_items").select("id", { count: "exact", head: true }),
-    supabase.from("family_members").select("id", { count: "exact", head: true }),
-    supabase.from("rsvps").select("id", { count: "exact", head: true }),
-    supabase.from("blessings").select("id", { count: "exact", head: true }),
+    supabase
+      .from("gallery_images")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", siteId),
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("site_id", siteId),
+    supabase
+      .from("timeline_items")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", siteId),
+    supabase
+      .from("family_members")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", siteId),
+    supabase.from("rsvps").select("id", { count: "exact", head: true }).eq("site_id", siteId),
+    supabase.from("blessings").select("id", { count: "exact", head: true }).eq("site_id", siteId),
   ]);
   return {
     gallery: gallery.count ?? 0,
@@ -22,10 +31,16 @@ async function fetchCounts() {
   };
 }
 
-export function DashboardHome({ onNavigate }: { onNavigate: (section: string) => void }) {
+export function DashboardHome({
+  siteId,
+  onNavigate,
+}: {
+  siteId: string;
+  onNavigate: (section: string) => void;
+}) {
   const { data, isLoading } = useQuery({
-    queryKey: ["admin_dashboard_counts"],
-    queryFn: fetchCounts,
+    queryKey: ["admin_dashboard_counts", siteId],
+    queryFn: () => fetchCounts(siteId),
   });
 
   const cards = [

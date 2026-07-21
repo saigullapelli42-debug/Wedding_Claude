@@ -16,25 +16,35 @@ import { deleteFromBucket } from "@/lib/storage";
 type FamilyGroup = Tables<"family_groups">;
 type FamilyMember = Tables<"family_members">;
 
-async function fetchGroups(): Promise<FamilyGroup[]> {
-  const { data, error } = await supabase.from("family_groups").select("*").order("side");
+async function fetchGroups(siteId: string): Promise<FamilyGroup[]> {
+  const { data, error } = await supabase
+    .from("family_groups")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("side");
   if (error) throw error;
   return data;
 }
-async function fetchMembers(): Promise<FamilyMember[]> {
-  const { data, error } = await supabase.from("family_members").select("*").order("display_order");
+async function fetchMembers(siteId: string): Promise<FamilyMember[]> {
+  const { data, error } = await supabase
+    .from("family_members")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
 
 function MemberCard({
   member,
+  siteId,
   isFirst,
   isLast,
   onMove,
   onChanged,
 }: {
   member: FamilyMember;
+  siteId: string;
   isFirst: boolean;
   isLast: boolean;
   onMove: (dir: "up" | "down") => void;
@@ -94,6 +104,7 @@ function MemberCard({
         />
         <ImageUpload
           bucket="family"
+          siteId={siteId}
           url={form.image_url}
           path={form.image_path}
           aspect="square"
@@ -154,15 +165,18 @@ function MemberCard({
 function FamilyGroupPanel({
   group,
   members,
+  siteId,
   onChanged,
 }: {
   group: FamilyGroup;
   members: FamilyMember[];
+  siteId: string;
   onChanged: () => void;
 }) {
   const addMutation = useMutation({
     mutationFn: async () => {
       const payload: TablesInsert<"family_members"> = {
+        site_id: siteId,
         family_group_id: group.id,
         name: "New Member",
         relationship: "",
@@ -216,6 +230,7 @@ function FamilyGroupPanel({
             <MemberCard
               key={m.id}
               member={m}
+              siteId={siteId}
               isFirst={i === 0}
               isLast={i === members.length - 1}
               onMove={(dir) => move(m, dir)}
@@ -228,21 +243,21 @@ function FamilyGroupPanel({
   );
 }
 
-export function FamilyMembersSection() {
+export function FamilyMembersSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { data: groups, isLoading: groupsLoading } = useQuery({
-    queryKey: ["family_groups"],
-    queryFn: fetchGroups,
+    queryKey: ["family_groups", siteId],
+    queryFn: () => fetchGroups(siteId),
   });
   const { data: members, isLoading: membersLoading } = useQuery({
-    queryKey: ["family_members"],
-    queryFn: fetchMembers,
+    queryKey: ["family_members", siteId],
+    queryFn: () => fetchMembers(siteId),
   });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["family_groups"] });
-    queryClient.invalidateQueries({ queryKey: ["family_members"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "family"] });
+    queryClient.invalidateQueries({ queryKey: ["family_groups", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["family_members", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "family", siteId] });
   }
 
   if (groupsLoading || membersLoading || !groups || !members) {
@@ -264,6 +279,7 @@ export function FamilyMembersSection() {
           key={group.id}
           group={group}
           members={members.filter((m) => m.family_group_id === group.id)}
+          siteId={siteId}
           onChanged={refresh}
         />
       ))}

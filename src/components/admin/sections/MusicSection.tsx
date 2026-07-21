@@ -22,13 +22,21 @@ import { SectionHeader, EmptyState } from "../shared/Layout";
 type Track = Tables<"music_tracks">;
 type MusicSettings = Tables<"music_settings">;
 
-async function fetchTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("music_tracks").select("*").order("display_order");
+async function fetchTracks(siteId: string): Promise<Track[]> {
+  const { data, error } = await supabase
+    .from("music_tracks")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
-async function fetchSettings(): Promise<MusicSettings> {
-  const { data, error } = await supabase.from("music_settings").select("*").single();
+async function fetchSettings(siteId: string): Promise<MusicSettings> {
+  const { data, error } = await supabase
+    .from("music_settings")
+    .select("*")
+    .eq("site_id", siteId)
+    .single();
   if (error) throw error;
   return data;
 }
@@ -106,15 +114,15 @@ function TrackRow({ track, onChanged }: { track: Track; onChanged: () => void })
   );
 }
 
-export function MusicSection() {
+export function MusicSection({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { data: tracks, isLoading: tracksLoading } = useQuery({
-    queryKey: ["music_tracks"],
-    queryFn: fetchTracks,
+    queryKey: ["music_tracks", siteId],
+    queryFn: () => fetchTracks(siteId),
   });
   const { data: settings, isLoading: settingsLoading } = useQuery({
-    queryKey: ["music_settings"],
-    queryFn: fetchSettings,
+    queryKey: ["music_settings", siteId],
+    queryFn: () => fetchSettings(siteId),
   });
   const [settingsForm, setSettingsForm] = useState<MusicSettings | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,14 +133,14 @@ export function MusicSection() {
   }, [settings]);
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["music_tracks"] });
-    queryClient.invalidateQueries({ queryKey: ["music_settings"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "music"] });
+    queryClient.invalidateQueries({ queryKey: ["music_tracks", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["music_settings", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "music", siteId] });
   }
 
   const settingsMutation = useMutation({
     mutationFn: async (update: Partial<MusicSettings>) => {
-      const { error } = await supabase.from("music_settings").update(update).eq("id", true);
+      const { error } = await supabase.from("music_settings").update(update).eq("site_id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -145,8 +153,9 @@ export function MusicSection() {
   async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const { url, path } = await uploadToBucket("music", file);
+      const { url, path } = await uploadToBucket("music", file, siteId);
       const { error } = await supabase.from("music_tracks").insert({
+        site_id: siteId,
         title: file.name.replace(/\.[^.]+$/, ""),
         file_url: url,
         file_path: path,

@@ -16,13 +16,17 @@ import { deleteFromBucket } from "@/lib/storage";
 
 type TimelineItem = Tables<"timeline_items">;
 
-async function fetchTimeline(): Promise<TimelineItem[]> {
-  const { data, error } = await supabase.from("timeline_items").select("*").order("display_order");
+async function fetchTimeline(siteId: string): Promise<TimelineItem[]> {
+  const { data, error } = await supabase
+    .from("timeline_items")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("display_order");
   if (error) throw error;
   return data;
 }
 
-const BLANK: TablesInsert<"timeline_items"> = {
+const BLANK: Omit<TablesInsert<"timeline_items">, "site_id"> = {
   date_label: "",
   title: "",
   description: "",
@@ -34,12 +38,14 @@ const BLANK: TablesInsert<"timeline_items"> = {
 
 function TimelineItemCard({
   item,
+  siteId,
   isFirst,
   isLast,
   onMove,
   onChanged,
 }: {
   item: TimelineItem;
+  siteId: string;
   isFirst: boolean;
   isLast: boolean;
   onMove: (dir: "up" | "down") => void;
@@ -150,6 +156,7 @@ function TimelineItemCard({
       </div>
       <ImageUpload
         bucket="gallery"
+        siteId={siteId}
         url={form.image_url}
         path={form.image_path}
         label="Photo"
@@ -183,13 +190,16 @@ function TimelineItemCard({
   );
 }
 
-export function StoryTimeline() {
+export function StoryTimeline({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["timeline_items"], queryFn: fetchTimeline });
+  const { data, isLoading } = useQuery({
+    queryKey: ["timeline_items", siteId],
+    queryFn: () => fetchTimeline(siteId),
+  });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["timeline_items"] });
-    queryClient.invalidateQueries({ queryKey: ["public", "timeline_items"] });
+    queryClient.invalidateQueries({ queryKey: ["timeline_items", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["public", "timeline_items", siteId] });
   }
 
   const addMutation = useMutation({
@@ -197,7 +207,7 @@ export function StoryTimeline() {
       const nextOrder = data?.length ?? 0;
       const { error } = await supabase
         .from("timeline_items")
-        .insert({ ...BLANK, title: "New Moment", display_order: nextOrder });
+        .insert({ ...BLANK, site_id: siteId, title: "New Moment", display_order: nextOrder });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -258,6 +268,7 @@ export function StoryTimeline() {
             <TimelineItemCard
               key={item.id}
               item={item}
+              siteId={siteId}
               isFirst={i === 0}
               isLast={i === data.length - 1}
               onMove={(dir) => move(item, dir)}
