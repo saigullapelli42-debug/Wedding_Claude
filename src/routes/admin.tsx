@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, ExternalLink, Settings } from "lucide-react";
+import { Loader2, Plus, ExternalLink, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AccountAuthProvider, useAccountAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { createNewSite } from "@/lib/create-site";
+import { deleteAllSiteFiles } from "@/lib/storage";
 import type { Tables } from "@/lib/database.types";
 
 export const Route = createFileRoute("/admin")({
@@ -121,6 +133,91 @@ async function fetchMySites(userId: string): Promise<SiteWithRole[]> {
     .filter((s): s is SiteWithRole => !!s);
 }
 
+function DeleteSiteButton({ site, onDeleted }: { site: SiteWithRole; onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const matches = confirmText.trim() === site.slug;
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteAllSiteFiles(site.id);
+      const { error } = await supabase.from("sites").delete().eq("id", site.id);
+      if (error) throw error;
+      toast.success(`${site.groom_name} & ${site.bride_name}'s site was deleted`);
+      setOpen(false);
+      setConfirmText("");
+      onDeleted();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete site");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setConfirmText("");
+      }}
+    >
+      <AlertDialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          aria-label="Delete site"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Delete {site.groom_name} &amp; {site.bride_name}'s site?
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>
+                This permanently deletes everything for this site — photos, events, timeline,
+                gallery, family members, RSVPs, blessings, and all settings. This cannot be undone.
+              </p>
+              <p>
+                Type <span className="font-mono font-semibold text-foreground">{site.slug}</span>{" "}
+                below to confirm.
+              </p>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder={site.slug}
+                autoFocus
+              />
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!matches || deleting}
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Delete Permanently
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function SitesDirectory() {
   const { session, signOut } = useAccountAuth();
   const queryClient = useQueryClient();
@@ -224,9 +321,17 @@ function SitesDirectory() {
           <div className="grid gap-4 sm:grid-cols-2">
             {sites.map((site) => (
               <div key={site.id} className="rounded-xl border bg-white p-5 shadow-sm">
-                <h3 className="font-serif text-xl mb-1">
-                  {site.groom_name} &amp; {site.bride_name}
-                </h3>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h3 className="font-serif text-xl">
+                    {site.groom_name} &amp; {site.bride_name}
+                  </h3>
+                  <DeleteSiteButton
+                    site={site}
+                    onDeleted={() =>
+                      queryClient.invalidateQueries({ queryKey: ["my_sites", userId] })
+                    }
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground mb-4 font-mono">/{site.slug}</p>
                 <div className="flex gap-2">
                   <Link

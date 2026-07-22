@@ -3,6 +3,18 @@ import { supabase } from "./supabase";
 export type UploadBucket =
   "hero" | "couple" | "gallery" | "events" | "family" | "venue" | "qr-codes" | "music" | "branding";
 
+const ALL_BUCKETS: UploadBucket[] = [
+  "hero",
+  "couple",
+  "gallery",
+  "events",
+  "family",
+  "venue",
+  "qr-codes",
+  "music",
+  "branding",
+];
+
 /**
  * Uploads a file to the given bucket under a random, collision-free path,
  * namespaced by site so multiple couples' files never collide in a shared
@@ -51,4 +63,25 @@ export async function replaceInBucket(
     });
   }
   return result;
+}
+
+/**
+ * Deletes every uploaded file belonging to a site, across every bucket
+ * (files are namespaced under `{siteId}/...`). Call this before deleting the
+ * site's database row so nothing is left orphaned in storage. Best-effort:
+ * failures on one bucket don't stop cleanup of the others.
+ */
+export async function deleteAllSiteFiles(siteId: string): Promise<void> {
+  await Promise.all(
+    ALL_BUCKETS.map(async (bucket) => {
+      try {
+        const { data, error } = await supabase.storage.from(bucket).list(siteId);
+        if (error || !data || data.length === 0) return;
+        const paths = data.map((f) => `${siteId}/${f.name}`);
+        await supabase.storage.from(bucket).remove(paths);
+      } catch {
+        // Best-effort cleanup — don't block site deletion if a bucket fails.
+      }
+    }),
+  );
 }
