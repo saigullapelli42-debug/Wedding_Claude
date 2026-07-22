@@ -53,15 +53,31 @@ const STOCK = {
     "https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?w=900&q=80&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1502635385003-ee1e6a1a742d?w=900&q=80&auto=format&fit=crop",
   ],
+  bridePortrait:
+    "https://images.unsplash.com/photo-1525258946800-98cfd641d0de?w=600&q=80&auto=format&fit=crop",
+  groomPortrait:
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&q=80&auto=format&fit=crop",
+  father:
+    "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80&auto=format&fit=crop",
+  mother:
+    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80&auto=format&fit=crop",
+  sibling:
+    "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&q=80&auto=format&fit=crop",
 };
 
 /**
  * Creates a brand-new wedding site: a unique slug, the `sites` row, grants
- * the current user admin on it, then seeds a full set of sample content —
- * placeholder photos, sample events, a sample timeline, and a starter
- * gallery — so the site looks complete from the first click. The couple
- * then just replaces each placeholder with their own photos and details
- * through the admin panel, the same way you'd edit the Sai & Priya example.
+ * the current user admin on it, then seeds a full replica of sample content —
+ * a hero photo, couple portraits, sample family members, sample events, a
+ * sample timeline, a starter gallery, a working placeholder gift/UPI QR code,
+ * and placeholder social links — so the site looks and works exactly like
+ * the Sai & Priya example from the very first click. The couple then just
+ * replaces each placeholder with their own photos and details through the
+ * admin panel.
+ *
+ * Note: background music is intentionally left empty — bundling real songs
+ * as defaults would require licensing rights we don't have. The couple
+ * uploads their own tracks in the Music section.
  */
 export async function createNewSite(
   brideName: string,
@@ -115,7 +131,13 @@ export async function createNewSite(
       description: "A short description of the venue.",
       image_url: STOCK.venue,
     }),
-    supabase.from("gift_settings").insert({ site_id: siteId, enabled: false }),
+    supabase.from("gift_settings").insert({
+      site_id: siteId,
+      enabled: true,
+      upi_id: "yourname@upi",
+      account_name: `${groomName} & ${brideName}`,
+      bank_name: "Your Bank Name",
+    }),
     supabase.from("music_settings").insert({ site_id: siteId, enabled: false }),
   ]);
   for (const r of [settings, hero, venue, gift, music]) {
@@ -128,6 +150,7 @@ export async function createNewSite(
       side: "bride",
       name: brideName,
       description: "A short description about the bride.",
+      image_url: STOCK.bridePortrait,
       display_order: 0,
     }),
     supabase.from("couple_members").insert({
@@ -135,18 +158,78 @@ export async function createNewSite(
       side: "groom",
       name: groomName,
       description: "A short description about the groom.",
+      image_url: STOCK.groomPortrait,
       display_order: 1,
     }),
     supabase
       .from("family_groups")
-      .insert({ site_id: siteId, side: "bride", title: "Bride's Family" }),
+      .insert({ site_id: siteId, side: "bride", title: "Bride's Family" })
+      .select()
+      .single(),
     supabase
       .from("family_groups")
-      .insert({ site_id: siteId, side: "groom", title: "Groom's Family" }),
+      .insert({ site_id: siteId, side: "groom", title: "Groom's Family" })
+      .select()
+      .single(),
   ]);
   for (const r of [brideMember, groomMember, brideFamily, groomFamily]) {
     if (r.error) throw r.error;
   }
+
+  const brideFamilyId = brideFamily.data!.id;
+  const groomFamilyId = groomFamily.data!.id;
+
+  const { error: familyMembersError } = await supabase.from("family_members").insert([
+    {
+      site_id: siteId,
+      family_group_id: brideFamilyId,
+      name: "Father's Name",
+      relationship: "Father",
+      image_url: STOCK.father,
+      display_order: 0,
+    },
+    {
+      site_id: siteId,
+      family_group_id: brideFamilyId,
+      name: "Mother's Name",
+      relationship: "Mother",
+      image_url: STOCK.mother,
+      display_order: 1,
+    },
+    {
+      site_id: siteId,
+      family_group_id: brideFamilyId,
+      name: "Sibling's Name",
+      relationship: "Sibling",
+      image_url: STOCK.sibling,
+      display_order: 2,
+    },
+    {
+      site_id: siteId,
+      family_group_id: groomFamilyId,
+      name: "Father's Name",
+      relationship: "Father",
+      image_url: STOCK.father,
+      display_order: 0,
+    },
+    {
+      site_id: siteId,
+      family_group_id: groomFamilyId,
+      name: "Mother's Name",
+      relationship: "Mother",
+      image_url: STOCK.mother,
+      display_order: 1,
+    },
+    {
+      site_id: siteId,
+      family_group_id: groomFamilyId,
+      name: "Sibling's Name",
+      relationship: "Sibling",
+      image_url: STOCK.sibling,
+      display_order: 2,
+    },
+  ]);
+  if (familyMembersError) throw familyMembersError;
 
   const { error: timelineError } = await supabase.from("timeline_items").insert([
     {
@@ -260,6 +343,38 @@ export async function createNewSite(
     })),
   );
   if (galleryError) throw galleryError;
+
+  const { error: socialError } = await supabase.from("social_links").insert([
+    {
+      site_id: siteId,
+      platform: "Instagram",
+      url: "https://instagram.com/",
+      enabled: false,
+      display_order: 0,
+    },
+    {
+      site_id: siteId,
+      platform: "YouTube",
+      url: "https://youtube.com/",
+      enabled: false,
+      display_order: 1,
+    },
+    {
+      site_id: siteId,
+      platform: "Facebook",
+      url: "https://facebook.com/",
+      enabled: false,
+      display_order: 2,
+    },
+    {
+      site_id: siteId,
+      platform: "WhatsApp",
+      url: "https://wa.me/",
+      enabled: false,
+      display_order: 3,
+    },
+  ]);
+  if (socialError) throw socialError;
 
   return { slug };
 }
