@@ -22,6 +22,8 @@ import {
   useBlessings,
 } from "@/lib/public-queries";
 import { useQueryClient } from "@tanstack/react-query";
+import { Coverflow3D } from "@/components/public/Coverflow3D";
+import { CornerBracketFrame } from "@/components/public/CornerBracketFrame";
 
 type SiteSettings = Tables<"site_settings">;
 type Venue = Tables<"venue">;
@@ -566,47 +568,56 @@ function GallerySection({
 function EventsSection({ events }: { events: EventRow[] }) {
   if (events.length === 0) return null;
   return (
-    <section id="events" className="py-24 px-6">
-      <div className="max-w-6xl mx-auto">
+    <section id="events" className="py-24 px-6 overflow-hidden">
+      <div className="max-w-5xl mx-auto">
         <SectionTitle eyebrow="Save the Dates" title="The Celebrations" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events.map((e, i) => (
-            <motion.div
-              key={e.id}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={fadeUp}
-              custom={i}
-              className="bg-white p-6 rounded-2xl shadow-sm border border-brand-gold/10 hover:shadow-luxe transition-all hover:-translate-y-1"
-            >
-              {e.image_url && (
-                <div className="w-full aspect-square mb-5 overflow-hidden rounded-xl">
-                  <img
-                    src={e.image_url}
-                    alt={e.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                  />
+        <Coverflow3D
+          count={events.length}
+          cardWidth={260}
+          renderCard={(index, isActive) => {
+            const e = events[index];
+            return (
+              <div className="relative">
+                {isActive && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 gold-gradient text-white text-xs tracking-[0.2em] uppercase px-4 py-1.5 rounded-full shadow-luxe whitespace-nowrap">
+                    {e.icon} {e.name}
+                  </div>
+                )}
+                <div className="relative bg-white p-2.5 pb-4 shadow-luxe rounded-sm">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-brand-blush/30">
+                    {e.image_url && (
+                      <img
+                        src={e.image_url}
+                        alt={e.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <CornerBracketFrame />
+                  </div>
+                  <p className="text-center font-serif text-lg mt-3">
+                    {isActive ? e.event_date : e.name}
+                  </p>
+                  {isActive && (
+                    <p className="text-center text-xs text-stone-400 mt-0.5">
+                      {e.start_time} · {e.venue}
+                    </p>
+                  )}
                 </div>
-              )}
-              <div className="text-3xl mb-2 animate-float inline-block">{e.icon}</div>
-              <h4 className="font-serif text-2xl mb-2">{e.name}</h4>
-              <p className="text-stone-400 text-sm mb-1 italic">
-                {e.event_date} · {e.start_time}
-              </p>
-              <p className="text-stone-600 text-sm mb-5">{e.venue}</p>
-              <a
-                href={e.map_url ?? undefined}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block w-full text-center py-2 border border-brand-gold text-brand-gold rounded-full text-xs font-bold tracking-widest hover:bg-brand-gold hover:text-white transition-colors"
-              >
-                DIRECTIONS
-              </a>
-            </motion.div>
-          ))}
-        </div>
+                {isActive && e.map_url && (
+                  <a
+                    href={e.map_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 block text-center py-2 border border-brand-gold text-brand-gold rounded-full text-xs font-bold tracking-widest hover:bg-brand-gold hover:text-white transition-colors"
+                  >
+                    DIRECTIONS
+                  </a>
+                )}
+              </div>
+            );
+          }}
+        />
       </div>
     </section>
   );
@@ -617,13 +628,15 @@ function FamilySection({ groups, members }: { groups: FamilyGroup[]; members: Fa
   if (groups.length === 0) return null;
   return (
     <section id="family" className="py-24 px-6 bg-brand-blush/20">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <SectionTitle eyebrow="With Love From" title="Our Family" />
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid md:grid-cols-2 gap-x-10 gap-y-6">
           {ordered.map((side) => (
-            <div key={side.id} className="text-center">
-              <h3 className="font-serif italic text-2xl gold-text mb-8">{side.title}</h3>
-              <div className="flex justify-center gap-6 flex-wrap">
+            <div key={side.id}>
+              <h3 className="font-serif italic text-xl gold-text mb-5 text-center md:text-left">
+                {side.title}
+              </h3>
+              <div className="space-y-4">
                 {members
                   .filter((m) => m.family_group_id === side.id)
                   .map((m, i) => (
@@ -634,9 +647,9 @@ function FamilySection({ groups, members }: { groups: FamilyGroup[]; members: Fa
                       viewport={{ once: true }}
                       variants={fadeUp}
                       custom={i}
-                      className="flex flex-col items-center max-w-[120px]"
+                      className="flex items-center gap-4 bg-white/70 rounded-full pl-2 pr-6 py-2 shadow-sm border border-brand-gold/10"
                     >
-                      <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-brand-gold/30 ring-offset-4 ring-offset-brand-cream">
+                      <div className="w-16 h-16 shrink-0 rounded-full overflow-hidden ring-2 ring-brand-gold/30">
                         {m.image_url && (
                           <img
                             src={m.image_url}
@@ -646,8 +659,17 @@ function FamilySection({ groups, members }: { groups: FamilyGroup[]; members: Fa
                           />
                         )}
                       </div>
-                      <p className="mt-3 font-medium text-sm">{m.name}</p>
-                      <p className="text-xs text-stone-400 italic">{m.relationship}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{m.name}</p>
+                        <p className="text-xs gold-text uppercase tracking-wide">
+                          {m.relationship}
+                        </p>
+                        {m.description && (
+                          <p className="text-xs text-stone-400 mt-0.5 line-clamp-2">
+                            {m.description}
+                          </p>
+                        )}
+                      </div>
                     </motion.div>
                   ))}
               </div>
