@@ -20,11 +20,48 @@ async function findAvailableSlug(base: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
+// Free-to-use stock photos (Unsplash) used purely as starter placeholders —
+// every one of these is meant to be replaced by the couple's own photos via
+// the admin panel's upload buttons.
+const STOCK = {
+  hero: "https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=80&auto=format&fit=crop",
+  venue:
+    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1200&q=80&auto=format&fit=crop",
+  timeline1:
+    "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&q=80&auto=format&fit=crop",
+  timeline2:
+    "https://images.unsplash.com/photo-1502635385003-ee1e6a1a742d?w=1200&q=80&auto=format&fit=crop",
+  timeline3:
+    "https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?w=1200&q=80&auto=format&fit=crop",
+  timeline4:
+    "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80&auto=format&fit=crop",
+  eventHaldi:
+    "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=800&q=80&auto=format&fit=crop",
+  eventMehendi:
+    "https://images.unsplash.com/photo-1610123361437-de2b3d4b3d1b?w=800&q=80&auto=format&fit=crop",
+  eventSangeet:
+    "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80&auto=format&fit=crop",
+  eventWedding:
+    "https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?w=800&q=80&auto=format&fit=crop",
+  eventReception:
+    "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=80&auto=format&fit=crop",
+  gallery: [
+    "https://images.unsplash.com/photo-1519741497674-611481863552?w=900&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=900&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=900&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=900&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?w=900&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1502635385003-ee1e6a1a742d?w=900&q=80&auto=format&fit=crop",
+  ],
+};
+
 /**
  * Creates a brand-new wedding site: a unique slug, the `sites` row, grants
- * the current user admin on it, then seeds the default content rows so the
- * public page and admin panel both work immediately (with placeholder text
- * the couple can edit right away).
+ * the current user admin on it, then seeds a full set of sample content —
+ * placeholder photos, sample events, a sample timeline, and a starter
+ * gallery — so the site looks complete from the first click. The couple
+ * then just replaces each placeholder with their own photos and details
+ * through the admin panel, the same way you'd edit the Sai & Priya example.
  */
 export async function createNewSite(
   brideName: string,
@@ -59,6 +96,9 @@ export async function createNewSite(
       groom_name: groomName,
       wedding_title: `${groomName} & ${brideName}`,
       tagline: "We're Getting Married",
+      wedding_date_label: "Date to be announced",
+      hashtag: `#${slugify(`${groomName}${brideName}`).replace(/-/g, "")}`,
+      rsvp_deadline: "Date to be announced",
       welcome_message: "Together with their families",
       footer_text: "Join us as we begin the next chapter of our lives.",
     }),
@@ -66,8 +106,15 @@ export async function createNewSite(
       site_id: siteId,
       title: `${groomName} & ${brideName}`,
       subtitle: "We're Getting Married",
+      image_url: STOCK.hero,
     }),
-    supabase.from("venue").insert({ site_id: siteId }),
+    supabase.from("venue").insert({
+      site_id: siteId,
+      name: "Venue Name",
+      address: "Venue address goes here",
+      description: "A short description of the venue.",
+      image_url: STOCK.venue,
+    }),
     supabase.from("gift_settings").insert({ site_id: siteId, enabled: false }),
     supabase.from("music_settings").insert({ site_id: siteId, enabled: false }),
   ]);
@@ -76,12 +123,20 @@ export async function createNewSite(
   }
 
   const [brideMember, groomMember, brideFamily, groomFamily] = await Promise.all([
-    supabase
-      .from("couple_members")
-      .insert({ site_id: siteId, side: "bride", name: brideName, display_order: 0 }),
-    supabase
-      .from("couple_members")
-      .insert({ site_id: siteId, side: "groom", name: groomName, display_order: 1 }),
+    supabase.from("couple_members").insert({
+      site_id: siteId,
+      side: "bride",
+      name: brideName,
+      description: "A short description about the bride.",
+      display_order: 0,
+    }),
+    supabase.from("couple_members").insert({
+      site_id: siteId,
+      side: "groom",
+      name: groomName,
+      description: "A short description about the groom.",
+      display_order: 1,
+    }),
     supabase
       .from("family_groups")
       .insert({ site_id: siteId, side: "bride", title: "Bride's Family" }),
@@ -92,6 +147,119 @@ export async function createNewSite(
   for (const r of [brideMember, groomMember, brideFamily, groomFamily]) {
     if (r.error) throw r.error;
   }
+
+  const { error: timelineError } = await supabase.from("timeline_items").insert([
+    {
+      site_id: siteId,
+      date_label: "How We Met",
+      title: "The First Meeting",
+      icon: "💕",
+      description: "Replace this with the story of how you first met.",
+      image_url: STOCK.timeline1,
+      display_order: 0,
+    },
+    {
+      site_id: siteId,
+      date_label: "Our First Trip",
+      title: "An Adventure Together",
+      icon: "📸",
+      description: "Replace this with a favorite memory from your time together.",
+      image_url: STOCK.timeline2,
+      display_order: 1,
+    },
+    {
+      site_id: siteId,
+      date_label: "The Proposal",
+      title: "Saying Yes",
+      icon: "💍",
+      description: "Replace this with the story of the proposal.",
+      image_url: STOCK.timeline3,
+      display_order: 2,
+    },
+    {
+      site_id: siteId,
+      date_label: "The Wedding",
+      title: "Forever Together",
+      icon: "❤️",
+      description: "Replace this with what this day means to you both.",
+      image_url: STOCK.timeline4,
+      display_order: 3,
+    },
+  ]);
+  if (timelineError) throw timelineError;
+
+  const { error: eventsError } = await supabase.from("events").insert([
+    {
+      site_id: siteId,
+      name: "Haldi",
+      event_date: "Date TBD",
+      start_time: "10:00 AM",
+      venue: "Venue name",
+      icon: "🌼",
+      image_url: STOCK.eventHaldi,
+      display_order: 0,
+    },
+    {
+      site_id: siteId,
+      name: "Mehendi",
+      event_date: "Date TBD",
+      start_time: "04:00 PM",
+      venue: "Venue name",
+      icon: "🌿",
+      image_url: STOCK.eventMehendi,
+      display_order: 1,
+    },
+    {
+      site_id: siteId,
+      name: "Sangeet",
+      event_date: "Date TBD",
+      start_time: "07:00 PM",
+      venue: "Venue name",
+      icon: "🎶",
+      image_url: STOCK.eventSangeet,
+      display_order: 2,
+    },
+    {
+      site_id: siteId,
+      name: "Wedding Ceremony",
+      event_date: "Date TBD",
+      start_time: "06:30 PM",
+      venue: "Venue name",
+      icon: "💍",
+      image_url: STOCK.eventWedding,
+      display_order: 3,
+    },
+    {
+      site_id: siteId,
+      name: "Reception",
+      event_date: "Date TBD",
+      start_time: "07:30 PM",
+      venue: "Venue name",
+      icon: "🥂",
+      image_url: STOCK.eventReception,
+      display_order: 4,
+    },
+  ]);
+  if (eventsError) throw eventsError;
+
+  const { data: category, error: categoryError } = await supabase
+    .from("gallery_categories")
+    .insert({ site_id: siteId, name: "Photos", display_order: 0 })
+    .select()
+    .single();
+  if (categoryError) throw categoryError;
+
+  const { error: galleryError } = await supabase.from("gallery_images").insert(
+    STOCK.gallery.map((url, i) => ({
+      site_id: siteId,
+      category_id: category.id,
+      image_url: url,
+      alt_text: "Sample photo — replace with your own",
+      title: "",
+      display_order: i,
+    })),
+  );
+  if (galleryError) throw galleryError;
 
   return { slug };
 }
